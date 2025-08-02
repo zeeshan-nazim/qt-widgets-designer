@@ -85,8 +85,7 @@ Paint::Paint(QWidget *parent)
     bar->addMenu(menu);
 
     connect(load, &QAction::triggered, this, [=]() {
-        QString filename = QFileDialog::getOpenFileName(this, "Datei laden", "",
-                                                        "Alle unterstützten Formate (*.xml *.json *.csv);;XML (*.xml);;JSON (*.json);;CSV (*.csv)");
+        QString filename = QFileDialog::getOpenFileName(this, "Datei laden", "", "Alle unterstützten Formate (*.xml *.json *.csv)");
 
         if (!filename.isEmpty()) {
             std::unique_ptr<Loader> loader;
@@ -119,7 +118,7 @@ Paint::Paint(QWidget *parent)
 
     connect(save, &QAction::triggered, this, [=]() {
         QString filename = QFileDialog::getSaveFileName(this, "Speichern unter", "",
-                                                        "Alle unterstützten Formate (*.xml *.json *.csv);;XML (*.xml);;JSON (*.json);;CSV (*.csv)");
+                                                        "XML (*.xml);;JSON (*.json);;CSV (*.csv)");
 
         if (!filename.isEmpty()) {
             Node* tree = viewport->buildNodeTree();
