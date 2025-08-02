@@ -85,12 +85,25 @@ Paint::Paint(QWidget *parent)
     bar->addMenu(menu);
 
     connect(load, &QAction::triggered, this, [=]() {
-        QString filename = QFileDialog::getOpenFileName(this, "Datei laden", "", "XML Dateien (*.xml);;Alle Dateien (*)");
+        QString filename = QFileDialog::getOpenFileName(this, "Datei laden", "",
+                                                        "Alle unterstützten Formate (*.xml *.json *.csv);;XML (*.xml);;JSON (*.json);;CSV (*.csv)");
 
         if (!filename.isEmpty()) {
-            XMLLoader loader;
-            if (loader.load(filename.toStdString())) {
-                const Node* node = loader.getRoot();
+            std::unique_ptr<Loader> loader;
+
+            if (filename.endsWith(".xml", Qt::CaseInsensitive)) {
+                loader = std::make_unique<XMLLoader>();
+            } else if (filename.endsWith(".json", Qt::CaseInsensitive)) {
+                loader = std::make_unique<JSONLoader>();
+            } else if (filename.endsWith(".csv", Qt::CaseInsensitive)) {
+                loader = std::make_unique<CSVLoader>();
+            } else {
+                qDebug() << "Nicht unterstütztes Dateiformat.";
+                return;
+            }
+
+            if (loader->load(filename.toStdString())) {
+                const Node* node = loader->getRoot();
                 if (node) {
                     viewport->loadFromNodeTree(node);
                     viewport->update();
@@ -103,19 +116,35 @@ Paint::Paint(QWidget *parent)
             qDebug() << "Laden abgebrochen.";
         }
     });
+
     connect(save, &QAction::triggered, this, [=]() {
-        QString filename = QFileDialog::getSaveFileName(this, "Speichern unter", "", "XML Dateien (*.xml);;Alle Dateien (*)");
+        QString filename = QFileDialog::getSaveFileName(this, "Speichern unter", "",
+                                                        "Alle unterstützten Formate (*.xml *.json *.csv);;XML (*.xml);;JSON (*.json);;CSV (*.csv)");
 
         if (!filename.isEmpty()) {
             Node* tree = viewport->buildNodeTree();
-            if (tree) {
-                XMLWriter writer;
-                writer.write(filename.toStdString(), tree);
-                delete tree;
-                qDebug() << "GUI gespeichert als: " << filename;
-            } else {
+            if (!tree) {
                 qDebug() << "Kein GUI zum Speichern vorhanden.";
+                return;
             }
+
+            std::unique_ptr<Writer> writer;
+
+            if (filename.endsWith(".xml", Qt::CaseInsensitive)) {
+                writer = std::make_unique<XMLWriter>();
+            } else if (filename.endsWith(".json", Qt::CaseInsensitive)) {
+                writer = std::make_unique<JSONWriter>();
+            } else if (filename.endsWith(".csv", Qt::CaseInsensitive)) {
+                writer = std::make_unique<CSVWriter>();
+            } else {
+                qDebug() << "Nicht unterstütztes Dateiformat.";
+                delete tree;
+                return;
+            }
+
+            writer->write(filename.toStdString(), tree);
+            delete tree;
+            qDebug() << "GUI gespeichert als: " << filename;
         } else {
             qDebug() << "Speichern abgebrochen.";
         }
